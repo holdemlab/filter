@@ -2,37 +2,37 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/holdemlab/filter.svg)](https://pkg.go.dev/github.com/holdemlab/filter)
 
-Пакет `filter` реалізує універсальний механізм фільтрації, пагінації та сортування для HTTP-запитів. Підтримує побудову запитів як до SQL (через goqu), так і до MongoDB.
+Package `filter` provides a universal filtering, pagination, and sorting mechanism for HTTP requests. It supports query building for both SQL (via goqu) and MongoDB.
 
-## Встановлення
+## Installation
 
 ```bash
 go get github.com/holdemlab/filter
 ```
 
-## Структура пакету
+## Package Structure
 
 ```
 filter/
 ├── doc.go              # Package-level documentation (godoc)
-├── options.go          # Options інтерфейс та його реалізація
-├── field.go            # Field структура та конвертація значень
-├── constants.go        # Константи операторів та типів даних
-├── errors.go           # Типізовані помилки (sentinel + custom types)
-├── validator.go        # Валідація операторів і типів
-├── between_parser.go   # Парсер оператора between для дат
-├── middlewares.go      # Gin middlewares для автоматичного парсингу query-параметрів
+├── options.go          # Options interface and implementation
+├── field.go            # Field struct and value conversion
+├── constants.go        # Operator and data type constants
+├── errors.go           # Typed errors (sentinel + custom types)
+├── validator.go        # Operator and data type validation
+├── between_parser.go   # Between operator parser for dates
+├── middlewares.go      # Gin middlewares for automatic query parameter parsing
 └── adapter/
     ├── doc.go          # Package-level documentation (godoc)
-    ├── goqu.go         # Адаптер для побудови SQL-запитів (goqu)
-    └── mongo.go        # Адаптер для побудови MongoDB-запитів
+    ├── goqu.go         # Adapter for building SQL queries (goqu)
+    └── mongo.go        # Adapter for building MongoDB queries
 ```
 
-## Основні компоненти
+## Core Components
 
 ### Options
 
-Інтерфейс `Options` — центральна точка пакету. Містить параметри пагінації, сортування та набір полів-фільтрів.
+The `Options` interface is the central component of the package. It holds pagination, sorting parameters, and a set of filter fields.
 
 ```go
 type Options interface {
@@ -47,67 +47,67 @@ type Options interface {
 }
 ```
 
-Створення:
+Creating an instance:
 
 ```go
 opts := filter.NewOptions(10, 1, "created_at", true)
-// limit=10, page=1, сортування по created_at, descending=true
+// limit=10, page=1, sort by created_at, descending=true
 ```
 
 ### Field
 
-Структура, що описує один фільтр:
+A struct describing a single filter:
 
 ```go
 type Field struct {
-    Name     string // Ім'я поля (колонка / ключ документа)
-    Operator string // Оператор порівняння (eq, neq, lt, gte, between, like, in, ...)
-    Value    string // Значення у вигляді рядка
-    Type     string // Тип даних (string, int, bool, date, datetime, uuid, list)
+    Name     string // Field name (column / document key)
+    Operator string // Comparison operator (eq, neq, lt, gte, between, like, in, ...)
+    Value    string // Value as a string
+    Type     string // Data type (string, int, bool, date, datetime, uuid, list)
 }
 ```
 
-Метод `GetValue()` конвертує рядкове `Value` у типізоване значення відповідно до поля `Type`:
+The `GetValue()` method converts the string `Value` into a typed value according to the `Type` field:
 
-| Type       | Go-тип результату          | Примітки                                                        |
+| Type       | Go Result Type             | Notes                                                           |
 |------------|----------------------------|-----------------------------------------------------------------|
 | `string`   | `string`                   |                                                                 |
 | `int`      | `int`                      |                                                                 |
 | `bool`     | `bool`                     |                                                                 |
-| `date`     | `time.Time` / `*Between`   | Формат `2006-01-02`. Для `between` — два значення через `*`    |
-| `datetime` | `time.Time` / `*Between`   | Формат `2006-01-02T15:04:05`. Для `between` — через `*`       |
+| `date`     | `time.Time` / `*Between`   | Format `2006-01-02`. For `between` — two values separated by `*` |
+| `datetime` | `time.Time` / `*Between`   | Format `2006-01-02T15:04:05`. For `between` — separated by `*` |
 | `uuid`     | `uuid.UUID`                |                                                                 |
-| `list`     | `any` (JSON unmarshal)     | JSON-масив, наприклад `["a","b"]`                               |
+| `list`     | `any` (JSON unmarshal)     | JSON array, e.g. `["a","b"]`                                    |
 
-Дати також можуть бути передані як Unix timestamp (ціле число).
+Dates can also be passed as Unix timestamps (integers).
 
-### Константи
+### Constants
 
-#### Оператори порівняння
+#### Comparison Operators
 
-| Константа            | Значення    | Опис                          |
+| Constant             | Value       | Description                   |
 |----------------------|-------------|-------------------------------|
-| `OperatorEq`         | `eq`        | Дорівнює                      |
-| `OperatorNotEq`      | `neq`       | Не дорівнює                   |
-| `OperatorLowerThan`  | `lt`        | Менше                         |
-| `OperatorLowerThanEq`| `lte`       | Менше або дорівнює            |
-| `OperatorGreaterThan`| `gt`        | Більше                        |
-| `OperatorGreaterThanEq`| `gte`     | Більше або дорівнює           |
-| `OperatorBetween`    | `between`   | Між двома значеннями          |
-| `OperatorLike`       | `like`      | Пошук за підрядком (SQL LIKE) |
-| `OperatorIn`         | `in`        | Входить у список              |
+| `OperatorEq`         | `eq`        | Equal                         |
+| `OperatorNotEq`      | `neq`       | Not equal                     |
+| `OperatorLowerThan`  | `lt`        | Less than                     |
+| `OperatorLowerThanEq`| `lte`       | Less than or equal            |
+| `OperatorGreaterThan`| `gt`        | Greater than                  |
+| `OperatorGreaterThanEq`| `gte`     | Greater than or equal         |
+| `OperatorBetween`    | `between`   | Between two values            |
+| `OperatorLike`       | `like`      | Substring search (SQL LIKE)   |
+| `OperatorIn`         | `in`        | Contained in a list           |
 
-#### Типи даних
+#### Data Types
 
 `string`, `int`, `bool`, `date`, `datetime`, `uuid`, `list`
 
 ## Gin Middlewares
 
-Пакет надає три gin middleware для автоматичного парсингу query-параметрів пагінації та сортування.
+The package provides three Gin middlewares for automatic parsing of pagination and sorting query parameters.
 
 ### QueryOptionsMiddlewares
 
-Зберігає `Options` у `gin.Context` під ключем `filter_options`. Далі в хендлері їх можна дістати:
+Stores `Options` in `gin.Context` under the key `filter_options`. You can retrieve it in a handler:
 
 ```go
 router.GET("/items", filter.QueryOptionsMiddlewares(), func(c *gin.Context) {
@@ -116,21 +116,21 @@ router.GET("/items", filter.QueryOptionsMiddlewares(), func(c *gin.Context) {
 })
 ```
 
-**Query-параметри:** `sort_by`, `descending`, `page`, `limit` (ліміт за замовчуванням — 10).
+**Query parameters:** `sort_by`, `descending`, `page`, `limit` (default limit is 10).
 
 ### SingleQueryOptionsMiddlewares
 
-Передає `Options` напряму в callback-функцію. Встановлює значення за замовчуванням: `limit=10`, `page=1`, `sort_by=id`.
+Passes `Options` directly to a callback function. Uses default values: `limit=10`, `page=1`, `sort_by=id`.
 
 ```go
 router.GET("/items", filter.SingleQueryOptionsMiddlewares(func(c *gin.Context, opts filter.Options) {
-    // використання opts
+    // use opts
 }))
 ```
 
 ### SingleQueryOptionsMiddlewaresWithDefaults
 
-Аналогічно `SingleQueryOptionsMiddlewares`, але дозволяє передати власні значення за замовчуванням через `*Params`:
+Similar to `SingleQueryOptionsMiddlewares`, but allows passing custom default values via `*Params`:
 
 ```go
 defaults := &filter.Params{
@@ -144,7 +144,7 @@ router.GET("/items", filter.SingleQueryOptionsMiddlewaresWithDefaults(handler, d
 
 ## UpdateFromQueryParams
 
-Метод для автоматичної побудови фільтрів із структури з тегами. Теги визначають ім'я поля та його тип:
+A method for automatically building filters from a struct with tags. Tags define the field name and its type:
 
 ```go
 type MyFilter struct {
@@ -157,63 +157,63 @@ c.ShouldBind(&f)
 opts.UpdateFromQueryParams(f, "form")
 ```
 
-Для вказання оператора використовується формат значення `operator#value`. Наприклад, query-параметр `?amount=gte#100` створить фільтр з оператором `gte` та значенням `100`. Якщо `#` відсутній — використовується оператор `eq` за замовчуванням.
+To specify an operator, use the value format `operator#value`. For example, the query parameter `?amount=gte#100` creates a filter with operator `gte` and value `100`. If `#` is absent, the default operator `eq` is used.
 
-## Between оператор
+## Between Operator
 
-Для оператора `between` значення передаються через розділювач `*`:
+For the `between` operator, values are separated by `*`:
 
 ```
 ?date=between#2024-01-01*2024-12-31
 ```
 
-Парсер `ParseBetweenOperator` розбиває значення на `start` та `end` і повертає структуру `*Between` з методами `Start()` та `End()`.
+The `ParseBetweenOperator` parser splits the value into `start` and `end` and returns a `*Between` struct with `Start()` and `End()` methods.
 
-## Адаптери
+## Adapters
 
 ### adapter.GoquQuery (SQL / goqu)
 
-Приймає `context.Context`, `Options` та `*goqu.SelectDataset`, додає WHERE-умови для кожного `Field`:
+Accepts `context.Context`, `Options`, and `*goqu.SelectDataset`, adds WHERE conditions for each `Field`:
 
 ```go
 dataset := goqu.From("users").Select("*")
 dataset, err := adapter.GoquQuery(ctx, opts, dataset)
 ```
 
-Маппінг операторів:
+Operator mapping:
 - `like` — `WHERE field LIKE '%value%'`
 - `between` — `WHERE field BETWEEN start AND end`
-- Решта (`eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `in`) — стандартний goqu `Op`
+- Others (`eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `in`) — standard goqu `Op`
 
 ### adapter.MongoQueryD (MongoDB)
 
-Приймає `context.Context` та `Options`, повертає `bson.D` фільтр та `*options.FindOptions` із пагінацією та сортуванням:
+Accepts `context.Context` and `Options`, returns a `bson.D` filter and `*options.FindOptions` with pagination and sorting:
 
 ```go
 bsonFilter, findOpts, err := adapter.MongoQueryD(ctx, opts)
 cursor, err := collection.Find(ctx, bsonFilter, findOpts)
 ```
 
-Маппінг операторів:
+Operator mapping:
 - `eq` → `$eq`, `neq` → `$ne`, `gt` → `$gt`, `gte` → `$gte`, `lt` → `$lt`, `lte` → `$lte`
 - `in` → `$in`
 - `between` → `$gte` + `$lte`
 
-Пагінація та сортування налаштовуються через `FindOptions` (`SetLimit`, `SetSkip`, `SetSort`).
+Pagination and sorting are configured via `FindOptions` (`SetLimit`, `SetSkip`, `SetSort`).
 
-## Помилки (Typed Errors)
+## Typed Errors
 
-Пакет надає типізовані помилки, які підтримують `errors.Is` та `errors.As`:
+The package provides typed errors that support `errors.Is` and `errors.As`:
 
-| Тип | Опис |
-|------|------|
-| `ErrNilOptions` | Options є nil |
-| `ErrNilDataset` | Dataset є nil |
-| `ErrEmptyTypeTag` | Відсутній тег `type` у struct |
-| `ErrNotStruct` | Передано не-struct |
-| `*ValidationError` | Невалідний оператор, тип даних або їх комбінація |
-| `*ConversionError` | Помилка конвертації значення |
-| `*ParseError` | Помилка парсингу between-виразу |
+| Type | Description |
+|------|-------------|
+| `ErrNilOptions` | Options is nil |
+| `ErrNilDataset` | Dataset is nil |
+| `ErrEmptyTypeTag` | Missing `type` tag in struct |
+| `ErrNotStruct` | Non-struct value provided |
+| `*ValidationError` | Invalid operator, data type, or their combination |
+| `*ConversionError` | Value conversion error |
+| `*ParseError` | Between expression parsing error |
 
 ```go
 var ve *filter.ValidationError
@@ -222,21 +222,21 @@ if errors.As(err, &ve) {
 }
 ```
 
-## Валідація
+## Validation
 
-При додаванні поля через `AddField` автоматично валідуються:
-- **Оператор** — дозволені тільки визначені константи (`eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `between`, `like`, `in`)
-- **Тип даних** — дозволені тільки визначені константи (`string`, `int`, `bool`, `date`, `datetime`, `uuid`, `list`)
-- **Сумісність** — перевіряється комбінація оператор+тип (наприклад, `like` тільки з `string`, `between` тільки з `date`/`datetime`/`int`)
+When adding a field via `AddField`, the following are validated automatically:
+- **Operator** — only defined constants are allowed (`eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `between`, `like`, `in`)
+- **Data type** — only defined constants are allowed (`string`, `int`, `bool`, `date`, `datetime`, `uuid`, `list`)
+- **Compatibility** — the operator+type combination is checked (e.g., `like` only with `string`, `between` only with `date`/`datetime`/`int`)
 
-У разі невалідного значення повертається помилка.
+An error is returned if the value is invalid.
 
-## Приклад повного використання
+## Full Usage Example
 
 ```go
 // Handler
 func ListUsers(c *gin.Context, opts filter.Options) {
-    // Додаткові фільтри з query-параметрів
+    // Additional filters from query parameters
     type UserFilter struct {
         Name   string `form:"name"   type:"string"`
         Age    string `form:"age"    type:"int"`
@@ -247,18 +247,18 @@ func ListUsers(c *gin.Context, opts filter.Options) {
     c.ShouldBind(&f)
     opts.UpdateFromQueryParams(f, "form")
 
-    // SQL-запит через goqu
+    // SQL query via goqu
     dataset := goqu.From("users").Select("*")
     dataset, err := adapter.GoquQuery(c.Request.Context(), opts, dataset)
     if err != nil {
         // handle error
     }
 
-    // Пагінація
+    // Pagination
     offset := uint(opts.Page()) * opts.Limit()
     dataset = dataset.Limit(opts.Limit()).Offset(offset)
 
-    // Сортування
+    // Sorting
     if opts.SortBy() != "" {
         if opts.Desc() {
             dataset = dataset.Order(goqu.C(opts.SortBy()).Desc())
@@ -272,11 +272,11 @@ func ListUsers(c *gin.Context, opts filter.Options) {
 router.GET("/users", filter.SingleQueryOptionsMiddlewares(ListUsers))
 ```
 
-**Запит:**
+**Request:**
 ```
 GET /users?page=1&limit=20&sort_by=name&descending=true&name=like#John&age=gte#18
 ```
 
-## Документація
+## Documentation
 
-Повна API-документація доступна на [pkg.go.dev](https://pkg.go.dev/github.com/holdemlab/filter).
+Full API documentation is available at [pkg.go.dev](https://pkg.go.dev/github.com/holdemlab/filter).
