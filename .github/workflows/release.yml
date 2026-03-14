@@ -1,10 +1,11 @@
-# Release — auto-tag and create GitHub Release on merge to main
+# Release — auto-tag and create GitHub Release on merge to master
 #
 # Workflow:
-#  1. Triggered on push to main (typically a merge from develop)
-#  2. Analyzes commits since last tag using Conventional Commits
-#  3. Determines version bump: feat → minor, fix → patch, BREAKING CHANGE → major
-#  4. Creates a git tag (vX.Y.Z) and a GitHub Release with auto-generated changelog
+#  1. Triggered on push to master (typically a merge from develop)
+#  2. Runs lint and tests first
+#  3. Analyzes commits since last tag using Conventional Commits
+#  4. Determines version bump: feat → minor, fix → patch, BREAKING CHANGE → major
+#  5. Creates a git tag (vX.Y.Z) and a GitHub Release with auto-generated changelog
 
 name: Release
 
@@ -16,8 +17,42 @@ permissions:
   contents: write
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.11.2
+          args: --timeout=3m
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.22", "1.23", "1.24", "1.25"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests
+        run: make test
+
   release:
     name: Tag & Release
+    needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
