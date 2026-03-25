@@ -36,7 +36,9 @@ func MongoQueryD(ctx context.Context, op filter.Options) (bson.D, *options.FindO
 	if op.Limit() > 0 {
 		opts.SetLimit(int64(op.Limit()))
 	}
-	opts.SetSkip(int64(op.Page()-1) * int64(op.Limit()))
+	if op.Page() > 0 && op.Limit() > 0 {
+		opts.SetSkip(int64(op.Page()-1) * int64(op.Limit()))
+	}
 	return dataset, opts, nil
 }
 
