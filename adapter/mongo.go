@@ -33,7 +33,9 @@ func MongoQueryD(ctx context.Context, op filter.Options) (bson.D, *options.FindO
 			opts.SetSort(bson.D{bson.E{Key: op.SortBy(), Value: 1}})
 		}
 	}
-	opts.SetLimit(int64(op.Limit()))
+	if op.Limit() > 0 {
+		opts.SetLimit(int64(op.Limit()))
+	}
 	opts.SetSkip(int64(op.Page()-1) * int64(op.Limit()))
 	return dataset, opts, nil
 }
