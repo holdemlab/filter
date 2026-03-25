@@ -34,13 +34,12 @@ func GoquQuery(ctx context.Context, op filter.Options, dataset *goqu.SelectDatas
 	}
 
 	if op.Limit() > 0 {
-		dataset = dataset.Limit(uint(op.Limit()))
+		dataset = dataset.Limit(op.Limit())
 	}
 
 	if op.Page() > 0 && op.Limit() > 0 {
 		dataset = dataset.Offset(uint(op.Page()-1) * op.Limit())
 	}
-
 
 	return dataset, nil
 }
